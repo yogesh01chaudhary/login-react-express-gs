@@ -8,6 +8,8 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useRegisterUserMutation } from "../../../services/userAuthApi";
+import { storeToken } from "../../../services/LocalStorageService";
 const Registration = () => {
   const [error, setError] = useState({
     status: false,
@@ -15,18 +17,19 @@ const Registration = () => {
     type: "",
   });
   const navigate = useNavigate();
-  const handleSubmit = (e) => {
+  const [registerUser] = useRegisterUserMutation();
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
     const actualData = {
-      email: data.get("email"),
+      email: data.get("email".toLowerCase()),
       password: data.get("password"),
       name: data.get("name"),
       password_confirmation: data.get("password_confirmation"),
       tc: data.get("tc"),
     };
 
-    console.log("Data Added", actualData);
+    // console.log("Data Added", actualData);
 
     if (
       actualData.name &&
@@ -35,14 +38,27 @@ const Registration = () => {
       actualData.tc !== null
     ) {
       if (actualData.password === actualData.password_confirmation) {
-        console.log("Registration Successful", actualData);
-        document.getElementById("registration-form").reset();
-        setError({
-          status: true,
-          msg: "Registration Successful",
-          type: "success",
-        });
-        navigate("/dashboard");
+        const res = await registerUser(actualData);
+        console.log(res);
+        // console.log("Registration Successful", actualData);
+        // document.getElementById("registration-form").reset();
+        // setError({
+        //   status: true,
+        //   msg: "Registration Successful",
+        //   type: "success",
+        // });
+        if (res.data.status === "success") {
+          storeToken(res.data.token);
+          console.log(res.data.token);
+          navigate("/dashboard");
+        }
+        if (res.data.status === "failed") {
+          setError({
+            status: true,
+            msg: res.data.message,
+            type: "error",
+          });
+        }
       } else {
         console.log("password and confirm password not match");
         setError({
@@ -99,7 +115,7 @@ const Registration = () => {
           type="password"
         ></TextField>
         <FormControlLabel
-          control={<Checkbox value="agree" color="primary" name="tc" id="tc" />}
+          control={<Checkbox value={true} color="primary" name="tc" id="tc" />}
           label="I agree to terms and conditions."
         />
         <Box textAlign="center">

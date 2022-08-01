@@ -2,6 +2,9 @@ import React from "react";
 import { TextField, Button, Box, Alert } from "@mui/material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useChangeUserPasswordMutation } from "../../../services/userAuthApi";
+import { getToken } from "../../../services/LocalStorageService";
+// import { useSelector } from "react-redux";
 const ChangePassword = () => {
   const [error, setError] = useState({
     status: false,
@@ -9,27 +12,41 @@ const ChangePassword = () => {
     type: "",
   });
   const navigate = useNavigate();
-  const handleSubmit = (e) => {
+  const [changePassword] = useChangeUserPasswordMutation();
+  const token = getToken();
+  // console.log(token);
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
     const actualData = {
       password: data.get("password"),
       password_confirmation: data.get("password_confirmation"),
     };
-    console.log(actualData);
+    console.log({ actualData, token: token });
     if (actualData.password && actualData.password_confirmation) {
       if (actualData.password === actualData.password_confirmation) {
-        console.log(actualData);
-        document.getElementById("password-change-form").reset();
-        setError({
-          status: true,
-          msg: "Password Changed Successfull",
-          type: "success",
-        });
-        // navigate("/login");
-        setTimeout(() => {
-          navigate("/login");
-        }, 3000);
+        // console.log(actualData);
+        const res = await changePassword({ actualData, token });
+        console.log(res);
+        if (res.data.status === "success") {
+          document.getElementById("password-change-form").reset();
+          setError({
+            status: true,
+            msg: "Password Changed Successfull",
+            type: "success",
+          });
+          // navigate("/login");
+          setTimeout(() => {
+            navigate("/login");
+          }, 3000);
+        }
+        if (res.data.status === "failed") {
+          setError({
+            status: true,
+            msg: res.data.message,
+            type: "error",
+          });
+        }
       } else {
         setError({
           status: true,
@@ -45,6 +62,8 @@ const ChangePassword = () => {
       });
     }
   };
+  // const myData = useSelector((state) => state.user);
+  // console.log(myData);
   return (
     <div>
       <Box

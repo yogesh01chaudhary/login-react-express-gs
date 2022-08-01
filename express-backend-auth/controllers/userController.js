@@ -17,6 +17,7 @@ export default class UserController {
           try {
             // const salt = await bcrypt.genSalt(12);
             const hashPassword = await bcrypt.hash(password, 12);
+            req.body.email = req.body.email.toLowerCase();
             const user = new UserDB({
               name,
               email,
@@ -24,6 +25,7 @@ export default class UserController {
               password_confirmation,
               tc,
             });
+            // user.email.toLowerCase()
             await user.save();
             const saved_user = await UserDB.findOne({ email });
             const token = jwt.sign(
@@ -58,6 +60,7 @@ export default class UserController {
   static userLogin = async (req, res) => {
     try {
       const { email, password } = req.body;
+      req.body.email = req.body.email.toLowerCase();
       if (email && password) {
         const user = await UserDB.findOne({ email });
         if (user !== null) {
@@ -86,6 +89,7 @@ export default class UserController {
   };
 
   static changeUserPassword = async (req, res) => {
+    // console.log("BODY:", req.body);
     const { password, password_confirmation } = req.body;
     if (password && password_confirmation) {
       if (password !== password_confirmation) {
@@ -110,6 +114,7 @@ export default class UserController {
     }
   };
   static loggedUser = async (req, res) => {
+    // console.log(req.user);
     res.send({ user: req.user });
   };
 
@@ -121,6 +126,7 @@ export default class UserController {
         const secret = user._id + process.env.SECRET_KEY;
         const token = jwt.sign({ id: user._id }, secret, { expiresIn: "15m" });
         const link = `http://127.0.0.1:3001/api/user/reset/${user._id}/${token}`;
+        // const link = `http://localhost/api/user/reset/${user._id}/${token}`;
         console.log(link);
         let info = await transporter.sendMail({
           from: process.env.EMAIL_FROM,
@@ -142,20 +148,24 @@ export default class UserController {
   };
 
   static userPasswordReset = async (req, res) => {
-    const { password, password_confirmation } = req.body;
+    // console.log(req.body);
+    const { password, password_confirmation } = req.body.actualData;
     const { id, token } = req.params;
     const user = await UserDB.findById(id);
     const new_secret = user._id + process.env.SECRET_KEY;
     try {
       jwt.verify(token, new_secret);
+      // console.log({ password: password, c_password: password_confirmation });
+
       if (password && password_confirmation) {
         if (password === password_confirmation) {
           const salt = await bcrypt.genSalt(12);
           const newHashPassword = await bcrypt.hash(password, salt);
-          //   console.log(user._id);
+          // console.log(user._id);
           await UserDB.findByIdAndUpdate(user._id, {
             $set: { password: newHashPassword },
           });
+
           res.send({
             status: "success",
             message: "Password reset successfuly",

@@ -1,29 +1,42 @@
 import { Grid, TextField, Button, Box, Alert } from "@mui/material";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
+import { useSendPasswordResetEmailMutation } from "../../../services/userAuthApi";
 const SendPasswordResetEmail = () => {
   const [error, setError] = useState({
     status: false,
     msg: "",
     type: "",
   });
-  const navigate = useNavigate();
-  const handleSubmit = (e) => {
+  // const navigate = useNavigate();
+  const [sendPasswordResetEmail] = useSendPasswordResetEmailMutation();
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
     const actualData = {
       email: data.get("email"),
     };
-    console.log(actualData);
+    // console.log(actualData);
     if (actualData.email) {
-      console.log(actualData);
-      document.getElementById("password-reset-email-form").reset();
-      setError({
-        status: true,
-        msg: "Password Reset Email Sent",
-        type: "success",
-      });
-      navigate("/reset");
+      const res = await sendPasswordResetEmail(actualData);
+      console.log(res);
+      // console.log(actualData);
+      if (res.data.status === "success") {
+        document.getElementById("password-reset-email-form").reset();
+        setError({
+          status: true,
+          msg: "Password Reset Email Sent",
+          type: "success",
+        });
+        // navigate("/reset");
+      }
+      if (res.data.status === "failed") {
+        setError({
+          status: true,
+          msg: res.data.message,
+          type: "error",
+        });
+      }
     } else {
       setError({
         status: true,
